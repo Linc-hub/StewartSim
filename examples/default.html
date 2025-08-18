@@ -20,7 +20,7 @@
 
   <script src="../node_modules/p5/lib/p5.min.js"></script>
   <script src="../node_modules/quaternion/dist/quaternion.min.js"></script>
-  <script src="../node_modules/bezier-js/bezier.js"></script>
+  <script src="../node_modules/bezier-js/dist/bezier.js"></script>
   <script src="../dist/stewart.min.js"></script>
 
 
@@ -45,7 +45,7 @@
             0.0, 1.0, 0.0);
 
           platform = new Stewart;
-          animation = new Animation(platform);
+          animation = new Stewart.Animation(platform);
 
           platform.initHexagonal();
         };
@@ -114,7 +114,7 @@
         svg.setAttribute("height", 50);
 
         svg.onclick = function () {
-          animation._start(Animation.SVG(SVGS[id].path, SVGS[id].box), null);
+          animation._start(Stewart.Animation.SVG(SVGS[id].path, SVGS[id].box), null);
         };
 
         var path = document.createElementNS(xmlns, "path");

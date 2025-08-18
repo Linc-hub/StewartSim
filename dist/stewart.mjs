@@ -5,12 +5,14 @@ import Bezier from 'bezier-js';
 
 /* !simple-compilation */
 
+const TAU = 2 * Math.PI;
+
 function getHexPlate(r_i, r_o, rot) {
-  var ret = [];
-  var a_2 = (2 * r_i - r_o) / Math.sqrt(3);
-  for (var i = 0; i < 6; i++) {
-    var phi = (i - i % 2) / 3 * Math.PI + rot;
-    var ap = a_2 * Math.pow(-1, i);
+  const ret = [];
+  const a_2 = (2 * r_i - r_o) / Math.sqrt(3);
+  for (let i = 0; i < 6; i++) {
+    const phi = (i - i % 2) / 3 * Math.PI + rot;
+    const ap = a_2 * ((i & 1) ? -1 : 1);
 
     ret.push({
       x: r_o * Math.cos(phi) + ap * Math.sin(phi),
@@ -22,18 +24,18 @@ function getHexPlate(r_i, r_o, rot) {
 
 function parseSVGPath(str) {
 
-  var p = str.match(/[a-z]|[-+]?([0-9]*\.[0-9]+|[0-9]+)/ig);
+  const p = str.match(/[a-z]|[-+]?([0-9]*\.[0-9]+|[0-9]+)/ig) || [];
 
-  var COMMANDS = "MmZzLlHhVvCcSsQqTtAa";
-  var UPPERCASE = "MZLHVCSQTA";
+  const COMMANDS = "MmZzLlHhVvCcSsQqTtAa";
+  const UPPERCASE = "MZLHVCSQTA";
 
-  var segments = [];
+  const segments = [];
 
-  var cur = { x: 0, y: 0 };
-  var start = null;
-  var cmd = null;
-  var prevCmd = null;
-  var isRelative = false;
+  const cur = { x: 0, y: 0 };
+  let start = null;
+  let cmd = null;
+  let prevCmd = null;
+  let isRelative = false;
 
   while (p.length > 0) {
 
@@ -51,9 +53,9 @@ function parseSVGPath(str) {
 
     switch (cmd) {
 
-      case 'M':
-        var x = +p.shift();
-        var y = +p.shift();
+      case 'M': {
+        let x = +p.shift();
+        let y = +p.shift();
 
         if (isRelative) {
           cur.x += x;
@@ -71,10 +73,11 @@ function parseSVGPath(str) {
         // Implicitely treat move as lineTo
         cmd = 'L';
         break;
+      }
 
-      case 'L':
-        var x = +p.shift();
-        var y = +p.shift();
+      case 'L': {
+        let x = +p.shift();
+        let y = +p.shift();
 
         if (isRelative) {
           x += cur.x;
@@ -86,9 +89,10 @@ function parseSVGPath(str) {
         cur.x = x;
         cur.y = y;
         break;
+      }
 
-      case 'H':
-        var x = +p.shift();
+      case 'H': {
+        let x = +p.shift();
 
         if (isRelative) {
           x += cur.x;
@@ -98,9 +102,10 @@ function parseSVGPath(str) {
 
         cur.x = x;
         break;
+      }
 
-      case 'V':
-        var y = +p.shift();
+      case 'V': {
+        let y = +p.shift();
 
         if (isRelative) {
           y += cur.y;
@@ -110,8 +115,9 @@ function parseSVGPath(str) {
 
         cur.y = y;
         break;
+      }
 
-      case 'Z':
+      case 'Z': {
         if (start) {
           segments.push({ cmd: "line", x1: cur.x, y1: cur.y, x2: start.x, y2: start.y });
           cur.x = start.x;
@@ -120,17 +126,18 @@ function parseSVGPath(str) {
         start = null;
         cmd = null; // No implicit commands after path close
         break;
+      }
 
-      case 'C':
+      case 'C': {
 
-        var x1 = +p.shift();
-        var y1 = +p.shift();
+        let x1 = +p.shift();
+        let y1 = +p.shift();
 
-        var x2 = +p.shift();
-        var y2 = +p.shift();
+        let x2 = +p.shift();
+        let y2 = +p.shift();
 
-        var x = +p.shift();
-        var y = +p.shift();
+        let x = +p.shift();
+        let y = +p.shift();
 
         if (isRelative) {
           x1 += cur.x;
@@ -155,26 +162,27 @@ function parseSVGPath(str) {
         cur.x = x;
         cur.y = y;
         break;
+      }
 
-      case 'S':
+      case 'S': {
 
         // First control point is the reflection of the previous command.
-
+        let x1, y1;
         if (prevCmd !== 'C' && prevCmd !== 'S') {
           // If prev command was not C or S, assume first control point is coincident with current point
-          var x1 = cur.x;
-          var y1 = cur.y;
+          x1 = cur.x;
+          y1 = cur.y;
         } else {
           // The first control point is assumed to be the reflection of the second control point of the previous command relative to current point
-          var x1 = cur.x + cur.x - segments[segments.length - 1].x2;
-          var y1 = cur.y + cur.y - segments[segments.length - 1].y2;
+          x1 = cur.x + cur.x - segments[segments.length - 1].x2;
+          y1 = cur.y + cur.y - segments[segments.length - 1].y2;
         }
 
-        var x2 = +p.shift();
-        var y2 = +p.shift();
+        let x2 = +p.shift();
+        let y2 = +p.shift();
 
-        var x = +p.shift();
-        var y = +p.shift();
+        let x = +p.shift();
+        let y = +p.shift();
 
         if (isRelative) {
           x2 += cur.x;
@@ -196,15 +204,15 @@ function parseSVGPath(str) {
         cur.x = x;
         cur.y = y;
         break;
+      }
 
-      case 'Q':
+      case 'Q': {
 
-        var x1 = +p.shift();
-        var y1 = +p.shift();
+        let x1 = +p.shift();
+        let y1 = +p.shift();
 
-        var x = +p.shift();
-        var y = +p.shift();
-
+        let x = +p.shift();
+        let y = +p.shift();
 
         if (isRelative) {
           x1 += cur.x;
@@ -226,23 +234,24 @@ function parseSVGPath(str) {
         cur.x = x;
         cur.y = y;
         break;
+      }
 
-      case 'T':
+      case 'T': {
 
         // Control point is the reflection of the previous command.
-
+        let x1, y1;
         if (prevCmd !== 'Q' && prevCmd !== 'T') {
           // If prev command was not C or S, assume first control point is coincident with current point
-          var x1 = cur.x;
-          var y1 = cur.y;
+          x1 = cur.x;
+          y1 = cur.y;
         } else {
           // The first control point is assumed to be the reflection of the second control point of the previous command relative to current point
-          var x1 = cur.x + cur.x - segments[segments.length - 1].x1;
-          var y1 = cur.y + cur.y - segments[segments.length - 1].y1;
+          x1 = cur.x + cur.x - segments[segments.length - 1].x1;
+          y1 = cur.y + cur.y - segments[segments.length - 1].y1;
         }
 
-        var x = +p.shift();
-        var y = +p.shift();
+        let x = +p.shift();
+        let y = +p.shift();
 
         if (isRelative) {
           x += cur.x;
@@ -260,19 +269,19 @@ function parseSVGPath(str) {
         cur.x = x;
         cur.y = y;
         break;
+      }
 
+      case 'A': {
 
-      case 'A':
+        const rx = +p.shift();
+        const ry = +p.shift();
 
-        var rx = +p.shift();
-        var ry = +p.shift();
+        const axisRotation = +p.shift();
+        const largeArcFlag = +p.shift();
+        const sweepFlag = +p.shift();
 
-        var axisRotation = +p.shift();
-        var largeArcFlag = +p.shift();
-        var sweepFlag = +p.shift();
-
-        var x = +p.shift();
-        var y = +p.shift();
+        let x = +p.shift();
+        let y = +p.shift();
 
         if (isRelative) {
           x += cur.x;
@@ -294,6 +303,7 @@ function parseSVGPath(str) {
         cur.x = x;
         cur.y = y;
         break;
+      }
 
       default:
         throw new Error('Invalid SVG command ' + cmd);
@@ -302,7 +312,7 @@ function parseSVGPath(str) {
   return segments;
 }
 
-function Animation(platform) {
+function StewartAnimation(platform) {
   this.platform = platform;
   this.orientation = Quaternion.ONE;
   this.translation = [0, 0, 0];
@@ -310,24 +320,25 @@ function Animation(platform) {
   this.start('wobble');
 }
 
-Animation.SVG = function (svg, box) {
+StewartAnimation.SVG = function (svg, box) {
 
-  var PERSEC = 0.05; // 5units per sec
-  var L = 0;
-  var H = 0 - 10;
+  const PERSEC = 0.05; // 5units per sec
+  const L = 0;
+  const H = 0 - 10;
 
-  var SCREEN_SIZE = 80; // 80x80
+  const SCREEN_SIZE = 80; // 80x80
 
-  var cur = { x: box.width / 2, y: box.height / 2, z: L };
-  var ret = [];
+  const cur = { x: box.width / 2, y: box.height / 2, z: L };
+  const ret = [];
+  let s = null;
 
   function move(x, y, z) {
 
-    var relX = (x - box.x) / box.width * SCREEN_SIZE - SCREEN_SIZE / 2;
-    var relY = (y - box.y) / box.height * SCREEN_SIZE - SCREEN_SIZE / 2;
+    const relX = (x - box.x) / box.width * SCREEN_SIZE - SCREEN_SIZE / 2;
+    const relY = (y - box.y) / box.height * SCREEN_SIZE - SCREEN_SIZE / 2;
 
-    var relCurX = (cur.x - box.x) / box.width * SCREEN_SIZE - SCREEN_SIZE / 2;
-    var relCurY = (cur.y - box.y) / box.height * SCREEN_SIZE - SCREEN_SIZE / 2;
+    const relCurX = (cur.x - box.x) / box.width * SCREEN_SIZE - SCREEN_SIZE / 2;
+    const relCurY = (cur.y - box.y) / box.height * SCREEN_SIZE - SCREEN_SIZE / 2;
 
     ret.push({ orig: s.cmd, x: relX, y: relY, z: z, t: Math.hypot(relX - relCurX, relY - relCurY, z - cur.z) / PERSEC });
 
@@ -336,11 +347,11 @@ Animation.SVG = function (svg, box) {
     cur.z = z;
   }
 
-  var seg = parseSVGPath(svg);
+  const seg = parseSVGPath(svg);
 
-  for (var i = 0; i < seg.length; i++) {
+  for (let i = 0; i < seg.length; i++) {
 
-    var s = seg[i];
+    s = seg[i];
 
     switch (s.cmd) {
       case 'move':
@@ -353,89 +364,89 @@ Animation.SVG = function (svg, box) {
         break;
       case 'quadratic':
       case 'cubic':
-        var b = s.bezier.getLUT();
+        const b = s.bezier.getLUT();
 
-        for (var j = 0; j < b.length; j++) {
+        for (let j = 0; j < b.length; j++) {
           move(b[j].x, b[j].y, L);
         }
         break;
       case 'arc':
 
         // https://www.w3.org/TR/SVG11/implnote.html#ArcImplementationNotes
-        var x1 = cur.x;
-        var y1 = cur.y;
+        const x1 = cur.x;
+        const y1 = cur.y;
 
-        var x2 = s.x;
-        var y2 = s.y;
+        const x2 = s.x;
+        const y2 = s.y;
 
-        var axisRotation = s.axisRotation;
-        var largeArcFlag = s.largeArcFlag;
-        var sweepFlag = s.sweepFlag;
+        const axisRotation = s.axisRotation;
+        const largeArcFlag = s.largeArcFlag;
+        const sweepFlag = s.sweepFlag;
 
-        var rx = s.rx;
-        var ry = s.ry;
+        const rx = s.rx;
+        const ry = s.ry;
 
         // Step 1: x1', y1'
-        var x1_ = Math.cos(axisRotation) * (x1 - x2) / 2.0 + Math.sin(axisRotation) * (y1 - y2) / 2.0;
-        var y1_ = -Math.sin(axisRotation) * (x1 - x2) / 2.0 + Math.cos(axisRotation) * (y1 - y2) / 2.0;
+        const x1_ = Math.cos(axisRotation) * (x1 - x2) / 2.0 + Math.sin(axisRotation) * (y1 - y2) / 2.0;
+        const y1_ = -Math.sin(axisRotation) * (x1 - x2) / 2.0 + Math.cos(axisRotation) * (y1 - y2) / 2.0;
 
         // Step 2: cx', cy'
-        var s_ = (largeArcFlag === sweepFlag ? -1 : 1) * Math.sqrt((rx * rx * ry * ry - rx * rx * y1_ * y1_ - ry * ry * x1_ * x1_) / (rx * rx * y1_ * y1_ + ry * ry * x1_ * x1_));
+        const s_ = (largeArcFlag === sweepFlag ? -1 : 1) * Math.sqrt((rx * rx * ry * ry - rx * rx * y1_ * y1_ - ry * ry * x1_ * x1_) / (rx * rx * y1_ * y1_ + ry * ry * x1_ * x1_));
 
-        var cx_ = s_ * rx * y1_ / ry;
-        var cy_ = s_ * -ry * x1_ / rx;
+        const cx_ = s_ * rx * y1_ / ry;
+        const cy_ = s_ * -ry * x1_ / rx;
 
         // Step 3: cx, cy
-        var cx = (x1 + x2) / 2.0 + Math.cos(axisRotation) * cx_ - Math.sin(axisRotation) * cy_;
-        var cy = (y1 + y2) / 2.0 + Math.sin(axisRotation) * cx_ + Math.cos(axisRotation) * cy_;
+        const cx = (x1 + x2) / 2.0 + Math.cos(axisRotation) * cx_ - Math.sin(axisRotation) * cy_;
+        const cy = (y1 + y2) / 2.0 + Math.sin(axisRotation) * cx_ + Math.cos(axisRotation) * cy_;
 
 
         // Step 4:
 
-        var angleBetween = function (ux, uy, vx, vy) {
+        const angleBetween = function (ux, uy, vx, vy) {
 
-          var cosPhi = (ux * vx + uy * vy) / Math.sqrt((ux * ux + uy * uy) * (vx * vx + vy * vy));
+          const cosPhi = (ux * vx + uy * vy) / Math.sqrt((ux * ux + uy * uy) * (vx * vx + vy * vy));
 
           return (ux * vy < uy * vx ? -1 : 1) * Math.acos(cosPhi);
         };
 
         // initial angle
-        var theta1 = angleBetween(
+        const theta1 = angleBetween(
           1, 0,
           (x1_ - cx_) / rx, (y1_ - cy_) / ry);
 
         // angle delta
-        var thetad = angleBetween(
+        let thetad = angleBetween(
           (x1_ - cx_) / rx, (y1_ - cy_) / ry,
           (-x1_ - cx_) / rx, (-y1_ - cy_) / ry);
 
         if (sweepFlag === 0 && thetad > 0) {
-          thetad -= 2 * Math.PI;
+          thetad -= TAU;
         } else if (sweepFlag === 1 && thetad < 0) {
-          thetad += 2 * Math.PI;
+          thetad += TAU;
         }
 
-        var steps = Math.ceil(Math.abs(thetad * Math.max(rx, ry)) / 2); // every two degree
-        for (var j = 0; j <= steps; j++) {
-          var phi = theta1 + thetad * (j / steps);
+        const steps = Math.ceil(Math.abs(thetad * Math.max(rx, ry)) / 2); // every two degree
+        for (let j = 0; j <= steps; j++) {
+          const phi = theta1 + thetad * (j / steps);
 
-          var x = rx * Math.cos(phi);
-          var y = ry * Math.sin(phi);
+          const x = rx * Math.cos(phi);
+          const y = ry * Math.sin(phi);
 
-          var x_ = x * Math.cos(axisRotation) - y * Math.sin(axisRotation);
-          var y_ = x * Math.sin(axisRotation) + y * Math.cos(axisRotation);
+          const x_ = x * Math.cos(axisRotation) - y * Math.sin(axisRotation);
+          const y_ = x * Math.sin(axisRotation) + y * Math.cos(axisRotation);
 
           move(cx + x_, cy + y_, L);
         }
     }
   }
-  return Animation.Interpolate(ret);
+  return StewartAnimation.Interpolate(ret);
 };
 
-Animation.Interpolate = function (data) {
+StewartAnimation.Interpolate = function (data) {
 
-  var duration = 0;
-  for (var i = 1; i < data.length; i++) {
+  let duration = 0;
+  for (let i = 1; i < data.length; i++) {
     duration += data[i].t;
   }
 
@@ -447,19 +458,19 @@ Animation.Interpolate = function (data) {
 
       this.orientation = Quaternion.ONE;
 
-      var pctStart = 0;
+      let pctStart = 0;
 
-      for (var i = 1; i < data.length; i++) {
+      for (let i = 1; i < data.length; i++) {
 
-        var p = data[i];
+        const p = data[i];
 
-        var pctEnd = pctStart + p.t / duration;
+        const pctEnd = pctStart + p.t / duration;
 
         if (pctStart <= pct && pct < pctEnd) {
 
-          var scale = (pct - pctStart) / (pctEnd - pctStart);
+          const scale = (pct - pctStart) / (pctEnd - pctStart);
 
-          var prev = i === 0 ? data[0] : data[i - 1];
+          const prev = i === 0 ? data[0] : data[i - 1];
 
           this.translation[0] = prev.x + (p.x - prev.x) * scale;
           this.translation[1] = prev.y + (p.y - prev.y) * scale;
@@ -479,7 +490,7 @@ Animation.Interpolate = function (data) {
   };
 };
 
-Animation.prototype = {
+StewartAnimation.prototype = {
   cur: null,
   next: null,
   startTime: 0,
@@ -498,8 +509,8 @@ Animation.prototype = {
     p.beginShape();
     p.noFill();
     p.stroke(255, 0, 0);
-    var steps = 100;
-    for (var i = 0; i <= steps; i++) {
+    const steps = 100;
+    for (let i = 0; i <= steps; i++) {
       this.cur.fn.call(this, i / steps, p);
       p.vertex(this.translation[0], this.translation[1], this.translation[2] + this.platform.T0[2]);
     }
@@ -530,9 +541,9 @@ Animation.prototype = {
 
   moveTo: function (nt, no, time, next) {
 
-    var ot = this.translation.slice();
-    var oo = this.orientation.clone();
-    var tw = oo.slerp(no);
+    const ot = this.translation.slice();
+    const oo = this.orientation.clone();
+    const tw = oo.slerp(no);
 
     this.cur = {
       duration: time,
@@ -552,9 +563,9 @@ Animation.prototype = {
 
   update: function (p) {
 
-    var now = Date.now();
+    const now = Date.now();
 
-    var elapsed = (now - this.startTime) / this.cur.duration;
+    let elapsed = (now - this.startTime) / this.cur.duration;
 
     if (elapsed > 1)
       elapsed = 1;
@@ -574,7 +585,7 @@ Animation.prototype = {
       pathVisible: false,
       next: 'rotate',
       fn: function (pct) {
-        var b = Math.pow(Math.sin(pct * Math.PI * 2 - Math.PI * 8), 5) / 2;
+        const b = Math.pow(Math.sin(pct * Math.PI * 2 - Math.PI * 8), 5) / 2;
 
         this.translation[0] = 0;
         this.translation[1] = 0;
@@ -588,8 +599,8 @@ Animation.prototype = {
       next: 'tilt',
       fn: function (pct) {
 
-        var a = 0;
-        var z = 0;
+        let a = 0;
+        let z = 0;
 
         if (pct < 1 / 4) {
           pct = pct * 4;
@@ -599,21 +610,21 @@ Animation.prototype = {
           a = 1 * Math.PI / 3;
         } else if (pct < 3 / 4) {
           pct = (pct - 1 / 2) * 4;
-          a = 2 * Math.PI / 3;
+          a = TAU / 3;
         } else {
           pct = (pct - 3 / 4) * 4;
           z = 1;
         }
 
-        var x = 0;
-        var y = 0;
+        let x = 0;
+        let y = 0;
 
         if (z === 0) {
           x = Math.sin(a);
           y = -Math.cos(a);
         }
 
-        var b = Math.pow(Math.sin(pct * Math.PI * 2 - Math.PI * 8), 5) / 3;
+        const b = Math.pow(Math.sin(pct * Math.PI * 2 - Math.PI * 8), 5) / 3;
 
         this.translation[0] = 0;
         this.translation[1] = 0;
@@ -622,7 +633,7 @@ Animation.prototype = {
       }
     },
     square: (function () {
-      var tmp = Animation.Interpolate([
+      const tmp = StewartAnimation.Interpolate([
         { x: -30, y: -30, z: 0 + 10, t: 0 },
         { x: -30, y: 30, z: 0, t: 1000 },
         { x: 30, y: 30, z: +10, t: 1000 },
@@ -638,7 +649,7 @@ Animation.prototype = {
       next: 'wobble',
       fn: function (pct) {
 
-        var b = pct * 2 * Math.PI;
+        const b = pct * TAU;
 
         this.translation[0] = Math.cos(-b) * 13;
         this.translation[1] = Math.sin(-b) * 13;
@@ -652,7 +663,7 @@ Animation.prototype = {
       next: 'breathe',
       fn: function (pct) {
 
-        var y = (Math.exp(Math.sin(2 * Math.PI * pct) - 1)) / (Math.E * Math.E - 1);
+        const y = (Math.exp(Math.sin(TAU * pct) - 1)) / (Math.E * Math.E - 1);
 
         this.translation = [0, 0, y * 50];
         this.orientation = Quaternion.ONE;
@@ -663,7 +674,7 @@ Animation.prototype = {
       pathVisible: true,
       next: 'eight',
       fn: function (pct) {
-        var t = (-0.5 + 2.0 * pct) * Math.PI;
+        const t = (-0.5 + 2.0 * pct) * Math.PI;
         this.translation = [Math.cos(t) * 30, Math.sin(t) * Math.cos(t) * 30, 0];
         this.orientation = Quaternion.ONE;
       }
@@ -673,7 +684,7 @@ Animation.prototype = {
       pathVisible: true,
       next: 'lissajous',
       fn: function (pct) {
-        this.translation = [(Math.sin(3 * pct * 2 * Math.PI) * 30), (Math.sin(pct * 2 * 2 * Math.PI) * 30), 0];
+        this.translation = [(Math.sin(3 * pct * TAU) * 30), (Math.sin(pct * 2 * TAU) * 30), 0];
         this.orientation = Quaternion.ONE;
       }
     },
@@ -698,15 +709,15 @@ Animation.prototype = {
     }, /*
        perlin: (function() {
        
-       var xoff = 0;
-       var yoff = 0;
+       const xoff = 0;
+       const yoff = 0;
        
        
        return {
        duration: 0,
        fn: function(none, p) {
        
-       var b = p.noise(xoff, xoff) * 2 * Math.PI;
+       const b = p.noise(xoff, xoff) * TAU;
        
        this.translation[0] = Math.cos(-b) * 13;
        this.translation[1] = Math.sin(-b) * 13;
@@ -721,7 +732,7 @@ Animation.prototype = {
        })(),*/
     gamepad: (function () {
 
-      var gamepadActive = false;
+      let gamepadActive = false;
       if (window.addEventListener) {
         window.addEventListener("gamepadconnected", function (e) {
           gamepadActive = true;
@@ -751,9 +762,9 @@ Animation.prototype = {
             return;
           }
 
-          var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
-          var buttons = gamepads[0].buttons;
-          var axes = gamepads[0].axes;
+          const gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
+          const buttons = gamepads[0].buttons;
+          const axes = gamepads[0].axes;
 
           if (buttons[6].value) { // Is L1 pressed?
             // Rotate around Z axis with joystick 2 left-right
@@ -761,7 +772,7 @@ Animation.prototype = {
             this.translation = [0, 0, 0];
           } else {
             // Control with both joysticks
-            var b = Math.atan2(-axes[3], -axes[2]);
+            const b = Math.atan2(-axes[3], -axes[2]);
             this.translation = [axes[1] * 30, axes[0] * 30, 0];
             this.orientation = new Quaternion(-13, -Math.cos(b), Math.sin(b), 0).normalize();
           }
@@ -829,9 +840,9 @@ Stewart.prototype = {
     this.sinBeta = [];
     this.cosBeta = [];
 
-    var legs = opts.getLegs.call(this);
+    const legs = opts.getLegs.call(this);
 
-    for (var i = 0; i < legs.length; i++) {
+    for (let i = 0; i < legs.length; i++) {
       this.B.push(legs[i].baseJoint);
       this.P.push(legs[i].platformJoint);
       this.sinBeta.push(Math.sin(legs[i].motorRotation));
@@ -855,20 +866,20 @@ Stewart.prototype = {
     if (!opts)
       opts = {};
 
-    var baseRadius = opts.baseRadius || 80; // 8cm
-    var platformRadius = opts.platformRadius || 50; // 5cm
+    const baseRadius = opts.baseRadius || 80; // 8cm
+    const platformRadius = opts.platformRadius || 50; // 5cm
 
     // Circle segment s = alpha_deg / 180 * pi * R <=> alpha_deg = s / R / pi * 180 <=> alpha_rad = s / R
-    var shaftDistance = (opts.shaftDistance || 20) / baseRadius;
-    var anchorDistance = (opts.anchorDistance || 20) / baseRadius;
+    const shaftDistance = (opts.shaftDistance || 20) / baseRadius;
+    const anchorDistance = (opts.anchorDistance || 20) / baseRadius;
 
-    var rodLength = opts.rodLength || 130;
+    const rodLength = opts.rodLength || 130;
 
-    var hornLength = opts.hornLength || 50;
-    var hornDirection = opts.hornDirection || 0;
+    const hornLength = opts.hornLength || 50;
+    const hornDirection = opts.hornDirection || 0;
 
-    var servoRange = opts.servoRange || [-Math.PI / 2, Math.PI / 2];
-    var servoRangeVisible = opts.servoRangeVisible === undefined ? false : opts.servoRangeVisible;
+    const servoRange = opts.servoRange || [-Math.PI / 2, Math.PI / 2];
+    const servoRangeVisible = opts.servoRangeVisible === undefined ? false : opts.servoRangeVisible;
 
     this.init({
       rodLength: rodLength,
@@ -878,14 +889,14 @@ Stewart.prototype = {
       servoRangeVisible: servoRangeVisible,
       getLegs: function () {
 
-        var legs = [];
-        for (var i = 0; i < 6; i++) {
+        const legs = [];
+        for (let i = 0; i < 6; i++) {
 
-          var pm = Math.pow(-1, i);
-          var phiCut = (1 + i - i % 2) * Math.PI / 3;
+          const pm = ((i & 1) ? -1 : 1);
+          const phiCut = (1 + i - i % 2) * Math.PI / 3;
 
-          var phiB = (i + i % 2) * Math.PI / 3 + pm * shaftDistance / 2;
-          var phiP = phiCut - pm * anchorDistance / 2;
+          const phiB = (i + i % 2) * Math.PI / 3 + pm * shaftDistance / 2;
+          const phiP = phiCut - pm * anchorDistance / 2;
 
           legs.push({
             baseJoint: [Math.cos(phiB) * baseRadius, Math.sin(phiB) * baseRadius, 0],
@@ -913,26 +924,26 @@ Stewart.prototype = {
     if (!opts)
       opts = {};
 
-    var baseRadius = opts.baseRadius || 80; // 8cm
-    var baseRadiusOuter = opts.baseRadiusOuter || 110; // 11cm
+    const baseRadius = opts.baseRadius || 80; // 8cm
+    const baseRadiusOuter = opts.baseRadiusOuter || 110; // 11cm
 
-    var platformRadius = opts.platformRadius || 50; // 5cm
-    var platformRadiusOuter = opts.platformRadiusOuter || 80; // 8cm
-    var platformTurn = opts.platformTurn === undefined ? true : opts.platformTurn;
+    const platformRadius = opts.platformRadius || 50; // 5cm
+    const platformRadiusOuter = opts.platformRadiusOuter || 80; // 8cm
+    const platformTurn = opts.platformTurn === undefined ? true : opts.platformTurn;
 
-    var rodLength = opts.rodLength || 130;
+    const rodLength = opts.rodLength || 130;
 
-    var hornLength = opts.hornLength || 50;
-    var hornDirection = opts.hornDirection || 0;
+    const hornLength = opts.hornLength || 50;
+    const hornDirection = opts.hornDirection || 0;
 
-    var shaftDistance = opts.shaftDistance || 20;
-    var anchorDistance = opts.anchorDistance || 20;
+    const shaftDistance = opts.shaftDistance || 20;
+    const anchorDistance = opts.anchorDistance || 20;
 
-    var baseInts = getHexPlate(baseRadius, baseRadiusOuter, 0);
-    var platformInts = getHexPlate(platformRadius, platformRadiusOuter, platformTurn ? Math.PI : 0);
+    const baseInts = getHexPlate(baseRadius, baseRadiusOuter, 0);
+    const platformInts = getHexPlate(platformRadius, platformRadiusOuter, platformTurn ? Math.PI : 0);
 
-    var servoRange = opts.servoRange || [-Math.PI / 2, Math.PI / 2];
-    var servoRangeVisible = opts.servoRangeVisible === undefined ? false : opts.servoRangeVisible;
+    const servoRange = opts.servoRange || [-Math.PI / 2, Math.PI / 2];
+    const servoRangeVisible = opts.servoRangeVisible === undefined ? false : opts.servoRangeVisible;
 
     this.init({
       rodLength: rodLength,
@@ -941,35 +952,35 @@ Stewart.prototype = {
       servoRange: servoRange,
       servoRangeVisible: servoRangeVisible,
       getLegs: function () { // Called once at setup
-        var legs = [];
-        var basePoints = [];
-        var platPoints = [];
-        var motorAngle = [];
+        const legs = [];
+        const basePoints = [];
+        const platPoints = [];
+        const motorAngle = [];
 
-        for (var i = 0; i < 6; i++) {
+        for (let i = 0; i < 6; i++) {
 
-          var midK = i | 1;
-          var baseCx = baseInts[midK].x;
-          var baseCy = baseInts[midK].y;
-          var baseNx = baseInts[(midK + 1) % 6].x;
-          var baseNY = baseInts[(midK + 1) % 6].y;
+          const midK = i | 1;
+          const baseCx = baseInts[midK].x;
+          const baseCy = baseInts[midK].y;
+          const baseNx = baseInts[(midK + 1) % 6].x;
+          const baseNY = baseInts[(midK + 1) % 6].y;
 
-          var platCx = platformInts[midK].x;
-          var platCy = platformInts[midK].y;
-          var platNx = platformInts[(midK + 1) % 6].x;
-          var platNY = platformInts[(midK + 1) % 6].y;
+          const platCx = platformInts[midK].x;
+          const platCy = platformInts[midK].y;
+          const platNx = platformInts[(midK + 1) % 6].x;
+          const platNY = platformInts[(midK + 1) % 6].y;
 
-          var baseDX = baseNx - baseCx;
-          var baseDY = baseNY - baseCy;
-          var lenBaseSide = Math.hypot(baseDX, baseDY);
+          let baseDX = baseNx - baseCx;
+          let baseDY = baseNY - baseCy;
+          const lenBaseSide = Math.hypot(baseDX, baseDY);
 
-          var pm = Math.pow(-1, i);
+          const pm = ((i & 1) ? -1 : 1);
 
-          var baseMidX = (baseCx + baseNx) / 2;
-          var baseMidY = (baseCy + baseNY) / 2;
+          const baseMidX = (baseCx + baseNx) / 2;
+          const baseMidY = (baseCy + baseNY) / 2;
 
-          var platMidX = (platCx + platNx) / 2;
-          var platMidY = (platCy + platNY) / 2;
+          const platMidX = (platCx + platNx) / 2;
+          const platMidY = (platCy + platNY) / 2;
 
           baseDX /= lenBaseSide;
           baseDY /= lenBaseSide;
@@ -979,13 +990,13 @@ Stewart.prototype = {
           motorAngle.push(Math.atan2(baseDY, baseDX) + ((i + hornDirection) % 2) * Math.PI);
         }
 
-        var platformIndex = [0, 1, 2, 3, 4, 5];
+        let platformIndex = [0, 1, 2, 3, 4, 5];
 
         if (platformTurn) {
           platformIndex = [4, 3, 0, 5, 2, 1];
         }
 
-        for (var i = 0; i < basePoints.length; i++) {
+        for (let i = 0; i < basePoints.length; i++) {
           legs.push({
             baseJoint: basePoints[i],
             platformJoint: platPoints[platformIndex[i]],
@@ -1000,7 +1011,7 @@ Stewart.prototype = {
         p.fill(0xFE, 0xF1, 0x35);
 
         p.beginShape();
-        for (var i = 0; i < baseInts.length; i++) {
+        for (let i = 0; i < baseInts.length; i++) {
           p.vertex(baseInts[i].x, baseInts[i].y);
         }
         p.endShape(p.CLOSE);
@@ -1010,7 +1021,7 @@ Stewart.prototype = {
         p.fill(0x2A, 0xEC, 0xFD);
 
         p.beginShape();
-        for (var i = 0; i < platformInts.length; i++) {
+        for (let i = 0; i < platformInts.length; i++) {
           p.vertex(platformInts[i].x, platformInts[i].y);
         }
         p.endShape(p.CLOSE);
@@ -1022,11 +1033,11 @@ Stewart.prototype = {
 
     function drawCone(p, radius, h) {
 
-      var sides = 12;
-      var angle = 0;
-      var angleIncrement = 2 * Math.PI / sides;
+      const sides = 12;
+      let angle = 0;
+      const angleIncrement = TAU / sides;
       p.beginShape(p.TRIANGLE_STRIP);
-      for (var i = 0; i <= sides; i++) {
+      for (let i = 0; i <= sides; i++) {
         p.vertex(0, 0, 0);
         p.vertex(radius * Math.cos(angle), h, radius * Math.sin(angle));
         angle += angleIncrement;
@@ -1037,7 +1048,7 @@ Stewart.prototype = {
       p.beginShape(p.TRIANGLE_FAN);
 
       p.vertex(0, h, 0);
-      for (var i = 0; i < sides + 1; i++) {
+      for (let i = 0; i < sides + 1; i++) {
         p.vertex(radius * Math.cos(angle), h, radius * Math.sin(angle));
         angle += angleIncrement;
       }
@@ -1046,8 +1057,8 @@ Stewart.prototype = {
 
     function drawFrame(p) {
 
-      var w = 40;
-      var ch = 10; // cone head
+      const w = 40;
+      const ch = 10; // cone head
 
       // Draw 3 lines
       p.push();
@@ -1094,59 +1105,64 @@ Stewart.prototype = {
       drawFrame(p);
 
       // Base plate
-      p.push();
       this.drawBasePlate.call(this, p);
 
-      // Platform plate
+      p.push();
       p.translate(this.translation[0], this.translation[1], this.translation[2] + this.T0[2]);
-
       p.applyMatrix.apply(p, this.orientation.conjugate().toMatrix4());
-
       this.drawPlatformPlate.call(this, p);
-
-      // Platform Frame
       drawFrame(p);
       p.pop();
 
-      for (var i = 0; i < this.B.length; i++) {
-        // Base Joints
+      // Base joints
+      p.noStroke();
+      p.fill(0);
+      for (let i = 0; i < this.B.length; i++) {
         p.push();
         p.translate(this.B[i][0], this.B[i][1], this.B[i][2]);
-        p.noStroke();
-        p.fill(0);
         p.sphere(3);
         p.pop();
+      }
 
-        // Platform Joints
+      // Platform joints
+      p.noStroke();
+      p.fill(255, 0, 0);
+      for (let i = 0; i < this.q.length; i++) {
         p.push();
         p.translate(this.q[i][0], this.q[i][1], this.q[i][2]);
-        p.noStroke();
-        p.fill(255, 0, 0);
         p.sphere(3);
         p.pop();
+      }
 
-        // A -> q rods
-        p.push();
-        p.stroke(255, 0, 0);
-        p.strokeWeight(1);
+      // Rods
+      // Pass 1: H -> q rods in red
+      p.push();
+      p.stroke(255, 0, 0);
+      p.strokeWeight(1);
+      for (let i = 0; i < this.B.length; i++) {
         p.line(this.H[i][0], this.H[i][1], this.H[i][2], this.q[i][0], this.q[i][1], this.q[i][2]);
-        //p.pop();
+      }
+      p.pop();
 
-        // Base -> A rods
-        //p.push();
-        p.stroke(0);
-        // p.strokeWeight(1);
+      // Pass 2: Base -> H rods in black
+      p.push();
+      p.stroke(0);
+      for (let i = 0; i < this.B.length; i++) {
         p.line(this.B[i][0], this.B[i][1], this.B[i][2], this.H[i][0], this.H[i][1], this.H[i][2]);
-        p.pop();
+      }
+      p.pop();
 
-        if (this.servoRangeVisible) {
+      // --- Servo range arcs (need per-leg transform; batch style only) ---
+      if (this.servoRangeVisible) {
+        p.fill('rgba(255,0,0,0.1)');
+        p.noStroke();
+        for (let i = 0; i < this.B.length; i++) {
           p.push();
           p.translate(this.B[i][0], this.B[i][1], this.B[i][2]);
           p.rotateX(Math.PI / 2);
           p.rotateY(Math.atan2(this.H[i][1] - this.B[i][1], this.H[i][0] - this.B[i][0]));
-          p.fill('rgba(255,0,0,0.1)');
-          p.noStroke();
-          p.arc(0, 0, 2 * this.hornLength, 2 * this.hornLength, this.servoRange[0], this.servoRange[1], p.PIE);
+          p.arc(0, 0, 2 * this.hornLength, 2 * this.hornLength,
+            this.servoRange[0], this.servoRange[1], p.PIE);
           p.pop();
         }
       }
@@ -1156,28 +1172,28 @@ Stewart.prototype = {
 
   update: function (translation, orientation) {
 
-    var hornLength = this.hornLength;
-    var rodLength = this.rodLength;
+    const hornLength = this.hornLength;
+    const rodLength = this.rodLength;
 
-    var q = this.q;
-    var l = this.l;
-    var B = this.B;
-    var P = this.P;
-    var H = this.H;
-    var z = this.T0[2];
+    const q = this.q;
+    const l = this.l;
+    const B = this.B;
+    const P = this.P;
+    const H = this.H;
+    const z = this.T0[2];
 
     this.translation = translation;
     this.orientation = orientation;
 
     // Calculate H, q and l
-    for (var i = 0; i < B.length; i++) {
+    for (let i = 0; i < B.length; i++) {
 
-      var o = orientation.rotateVector(P[i]);
+      const o = orientation.rotateVector(P[i]);
 
-      var li = l[i];
-      var qi = q[i];
-      var Hi = H[i];
-      var Bi = B[i];
+      const li = l[i];
+      const qi = q[i];
+      const Hi = H[i];
+      const Bi = B[i];
 
       qi[0] = translation[0] + o[0];
       qi[1] = translation[1] + o[1];
@@ -1187,15 +1203,15 @@ Stewart.prototype = {
       li[1] = qi[1] - Bi[1];
       li[2] = qi[2] - Bi[2];
 
-      var gk = li[0] * li[0] + li[1] * li[1] + li[2] * li[2] - rodLength * rodLength + hornLength * hornLength;
-      var ek = 2 * hornLength * li[2];
-      var fk = 2 * hornLength * (this.cosBeta[i] * li[0] + this.sinBeta[i] * li[1]);
+      const gk = li[0] * li[0] + li[1] * li[1] + li[2] * li[2] - rodLength * rodLength + hornLength * hornLength;
+      const ek = 2 * hornLength * li[2];
+      const fk = 2 * hornLength * (this.cosBeta[i] * li[0] + this.sinBeta[i] * li[1]);
 
-      var sqSum = ek * ek + fk * fk;
-      var sqrt1 = Math.sqrt(1 - gk * gk / sqSum);
-      var sqrt2 = Math.sqrt(sqSum);
-      var sinAlpha = (gk * ek) / sqSum - (fk * sqrt1) / sqrt2;
-      var cosAlpha = (gk * fk) / sqSum + (ek * sqrt1) / sqrt2;
+      const sqSum = ek * ek + fk * fk;
+      const sqrt1 = Math.sqrt(Math.max(0, 1 - gk * gk / sqSum));
+      const sqrt2 = Math.sqrt(sqSum);
+      const sinAlpha = (gk * ek) / sqSum - (fk * sqrt1) / sqrt2;
+      const cosAlpha = (gk * fk) / sqSum + (ek * sqrt1) / sqrt2;
 
       Hi[0] = Bi[0] + hornLength * cosAlpha * this.cosBeta[i];
       Hi[1] = Bi[1] + hornLength * cosAlpha * this.sinBeta[i];
@@ -1205,9 +1221,10 @@ Stewart.prototype = {
 
   getServoAngles: function () {
 
-    var ret = [];
-    for (var i = 0; i < this.B.length; i++) {
-      ret[i] = Math.asin((this.H[i][2] - this.B[i][2]) / this.hornLength);
+    const ret = [];
+    for (let i = 0; i < this.B.length; i++) {
+      const dz = this.H[i][2] - this.B[i][2];
+      ret[i] = Math.asin(dz / this.hornLength);
       if (isNaN(ret[i])) {
         // Rod too short
         ret[i] = null;
@@ -1222,7 +1239,7 @@ Stewart.prototype = {
 
 };
 
-Stewart.Animation = Animation;
+Stewart.Animation = StewartAnimation;
 export {
   Stewart as default, Stewart
 };
