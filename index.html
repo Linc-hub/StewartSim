@@ -419,10 +419,11 @@
         <div class="vrow"><button id="resetAll">Reset All</button></div>
     </section>
 
-    <!-- Libraries -->
-    <script src="../node_modules/p5/lib/p5.min.js"></script>
-    <script src="../node_modules/quaternion/dist/quaternion.min.js"></script>
-    <script src="../dist/stewart.min.js"></script>
+    <!-- Libraries (CDN-safe for GitHub Pages) -->
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quaternion@3.4.0/quaternion.min.js"></script>
+    <!-- Put a copy of your stewart.js file in the same folder as this HTML -->
+    <script src="./stewart.js"></script>
 
     <script>
         // ---------- State ----------
@@ -467,26 +468,20 @@
         }
 
         // ---------- Extend Stewart.Animation with RAW-style pingpong ----------
-        // We graft the controller onto the animation map so it’s started just like RAW does.
         (function addPingPongToStewartAnimation() {
             if (!window.Stewart || !Stewart.Animation || !Stewart.Animation.prototype) return;
 
             const FN = Stewart.Animation.prototype.fn;
 
-            // Physics constants mirror the RAW pingpong.html controller behavior
+            // Physics constants
             const CTRL = { e: 0.80, Ht: 140, vMax: 800, aMax: 4000, zMin: 0, zMax: 30, tPlan: 0.12, tMin: 0.015, r: 20 };
 
             FN.pingpong = {
-                duration: 0,         // RAW-style “controller” (runs every frame)
+                duration: 0,
                 pathVisible: false,
                 next: null,
                 start: function () {
-                    // platform-relative Z stroke state
-                    this._pp = {
-                        z: 300, dz: 0,   // absolute ball z in world (mm)
-                        tPrev: performance.now(),
-                        zp: 0, vzp: 0, azp: 0 // platform Z (relative stroke) + derivatives
-                    };
+                    this._pp = { z: 300, dz: 0, tPrev: performance.now(), zp: 0, vzp: 0, azp: 0 };
                     this.orientation = Quaternion.ONE;
                     this.translation = [0, 0, 0];
                 },
@@ -496,25 +491,19 @@
                     const S = this._pp;
                     const now = performance.now();
                     let dt = (now - S.tPrev) / 1000; S.tPrev = now;
-                    // clamp dt to keep stable when tab resumes
                     dt = Math.max(0, Math.min(0.04, dt));
 
-                    // world constants
                     const g = -9.81 * 100; // mm/s^2
 
-                    // Convenience aliases
                     let zp = S.zp, vzp = S.vzp, azp = S.azp;
 
-                    // Predict impact time between ball and paddle plane at (zp + T0[2] + r)
                     const zoff = this.platform.T0 ? this.platform.T0[2] : 0;
                     const paddleTop = zp + zoff + CTRL.r;
 
-                    // Solve 0.5*g*t^2 + dz*t + (z - paddleTop) = 0
+                    // Predict impact
                     let tHit = null;
                     {
-                        const A = 0.5 * g;
-                        const B = S.dz;
-                        const C = S.z - paddleTop;
+                        const A = 0.5 * g, B = S.dz, C = S.z - paddleTop;
                         const D = B * B - 4 * A * C;
                         if (D >= 0) {
                             const sqrtD = Math.sqrt(D);
@@ -524,48 +513,37 @@
                         }
                     }
 
-                    // RAW-style planning: near impact, pull paddle towards mid-stroke height
                     if (tHit !== null && tHit < CTRL.tPlan) {
                         const t = Math.max(tHit, CTRL.tMin);
-                        const zMid = CTRL.Ht + CTRL.r; // relative to platform plane
+                        const zMid = CTRL.Ht + CTRL.r;
                         const w = 12, zeta = 1;
                         azp = (w * w) * (zMid - zp) + (2 * zeta * w) * (0 - vzp);
                         azp = Math.max(-CTRL.aMax, Math.min(CTRL.aMax, azp));
                     } else {
-                        // Return paddle to mid stroke between bounces
                         const zMid = 0.5 * (CTRL.zMin + CTRL.zMax);
                         const w = 12, zeta = 1;
                         azp = (w * w) * (zMid - zp) + (2 * zeta * w) * (0 - vzp);
                     }
 
-                    // Integrate paddle Z with limits
-                    vzp += azp * dt;
-                    vzp = Math.max(-CTRL.vMax, Math.min(CTRL.vMax, vzp));
+                    vzp = Math.max(-CTRL.vMax, Math.min(CTRL.vMax, vzp + azp * dt));
                     zp += vzp * dt;
                     if (zp > CTRL.zMax) { zp = CTRL.zMax; if (vzp > 0) vzp = 0; }
                     if (zp < CTRL.zMin) { zp = CTRL.zMin; if (vzp < 0) vzp = 0; }
 
-                    // Ball dynamics with gravity
                     S.dz += g * dt;
                     S.z += S.dz * dt;
 
-                    // Contact & restitution (keep the ball up)
                     if (S.z <= (zp + zoff + CTRL.r)) {
                         const vrel = S.dz - vzp;
-                        if (vrel < 0) {
-                            S.dz = vzp + (-CTRL.e * vrel); // bounce
-                        }
+                        if (vrel < 0) S.dz = vzp + (-CTRL.e * vrel);
                         S.z = zp + zoff + CTRL.r;
                     }
 
-                    // Commit back
                     S.zp = zp; S.vzp = vzp; S.azp = azp;
 
-                    // Controller sets animation translation/orientation RAW-style
                     this.translation = [0, 0, zp];
                     this.orientation = Quaternion.ONE;
 
-                    // Stash for drawing pass (in sketch after platform.draw)
                     this._ppBallZ = S.z;
                 }
             };
@@ -577,13 +555,9 @@
                 const cnv = p.createCanvas(746, 746, p.WEBGL); cnv.parent('canvas');
                 p.camera(0, -300, 500, 0, 0, 0, 0, 1, 0);
 
-                // mouse wheel — used by RAW mouse controller; we still capture Z intent for composition
+                // Passive wheel capture for mouse pattern parity
                 p.canvas.addEventListener('wheel', (e) => {
-                    if (animUI.playing && animUI.pattern === 'mouse') {
-                        // RAW mouse uses screen coords in Stewart.Animation, so no wheel Z there;
-                        // keep this no-op to avoid fighting RAW.
-                        e.preventDefault();
-                    }
+                    if (animUI.playing && animUI.pattern === 'mouse') { e.preventDefault(); }
                 }, { passive: true });
 
                 rebuildPlatform();
@@ -594,30 +568,23 @@
                 p.background(60);
                 p.push(); p.translate(0, 100, 0); p.rotateX(view.x * Math.PI / 180); p.rotateY(view.y * Math.PI / 180); p.rotateZ(view.z * Math.PI / 180);
 
-                // Update Stewart.Animation if playing
                 if (animUI.playing && animMgr) {
-                    // Adjust “duration clock” to honor speed slider by scaling timebase
                     const speedFactor = Math.max(0.1, animUI.pct / 100);
-                    // Fake elapsed by compressing/expanding time:
-                    // move startTime forward/backward so update() sees scaled passage of time
                     const now = Date.now();
-                    // For cyclic patterns with fixed durations:
                     if (animMgr.cur && animMgr.cur.duration > 0) {
                         const elapsed = (now - animMgr.startTime);
                         const scaled = elapsed * speedFactor;
                         animMgr.startTime = now - scaled;
                     }
-                    animMgr.update(p); // This also calls platform.update(animT, animQ) internally (RAW behavior)
+                    animMgr.update(p);
                 }
 
-                // Compose base pose + animation pose (so sliders always offset the loop)
                 const aT = animMgr ? animMgr.translation : [0, 0, 0];
                 const aQ = animMgr ? animMgr.orientation : Quaternion.ONE;
                 const baseQ = Quaternion.fromEuler(rotation.rx * Math.PI / 180, rotation.ry * Math.PI / 180, rotation.rz * Math.PI / 180);
                 const finalQ = baseQ.mul(aQ);
                 const finalT = [position.x + aT[0], position.y + aT[1], position.z + aT[2]];
 
-                // IK safety for animations (scale back toward base if needed)
                 let cand = { x: finalT[0], y: finalT[1], z: finalT[2], rx: rotation.rx, ry: rotation.ry, rz: rotation.rz };
                 if (ikClampAnimEnabled && animUI.playing) {
                     const base = { x: position.x, y: position.y, z: position.z, rx: rotation.rx, ry: rotation.ry, rz: rotation.rz };
@@ -633,25 +600,21 @@
                     }
                 }
 
-                // Apply & draw
                 platform.update([cand.x, cand.y, cand.z], finalQ);
                 platform.draw(p);
 
-                // Draw pingpong ball if present
                 if (animUI.playing && animUI.pattern === 'pingpong' && animMgr && typeof animMgr._ppBallZ === 'number') {
                     p.push();
                     p.noStroke(); p.fill(255, 220, 80);
-                    p.translate(position.x, position.y, animMgr._ppBallZ); // world Z already absolute
+                    p.translate(position.x, position.y, animMgr._ppBallZ);
                     p.sphere(20);
                     p.pop();
                 }
 
                 p.pop();
 
-                // Reflect current animated pose back into the right-side slider UI (for visible dynamics)
                 reflectPoseToUI(cand.x, cand.y, cand.z, rotation.rx, rotation.ry, rotation.rz);
 
-                // Final IK indicator
                 const res = isPoseValid(cand, cand); setIKStatus(res.ok, res.reason);
             };
         };
@@ -660,7 +623,6 @@
         function rebuildPlatform() {
             platform = new Stewart(); platform.initHexagonal(opts);
             if (Array.isArray(opts.servoRange)) platform.servoRange = opts.servoRange.slice();
-            // (Re)create RAW animation manager bound to this platform
             animMgr = new Stewart.Animation(platform);
             pingBall = null;
         }
@@ -768,7 +730,7 @@
         connectAxis({ minusBtn: "ryMinus", plusBtn: "ryPlus", slider: "rySlider", input: "ryInput", resetBtn: "ryReset", obj: rotation, key: "ry", step: stepRot });
         connectAxis({ minusBtn: "rzMinus", plusBtn: "rzPlus", slider: "rzSlider", input: "rzInput", resetBtn: "rzReset", obj: rotation, key: "rz", step: stepRot });
 
-        // Reflect pose into sliders while animating (without fighting manual input)
+        // Reflect pose into sliders while animating
         function reflectPoseToUI(x, y, z, rx, ry, rz) {
             const pairs = [
                 ['x', 'xSlider', 'xInput', x], ['y', 'ySlider', 'yInput', y], ['z', 'zSlider', 'zInput', z],
@@ -790,9 +752,7 @@
         const speedVal = document.getElementById("speedVal");
         const animToggle = document.getElementById("animToggle");
 
-        animUI.patternMap = { // UI -> RAW keys (identical names here)
-            wobble: 'wobble', rotate: 'rotate', tilt: 'tilt', helical: 'helical', mouse: 'mouse', gamepad: 'gamepad', pingpong: 'pingpong'
-        };
+        animUI.patternMap = { wobble: 'wobble', rotate: 'rotate', tilt: 'tilt', helical: 'helical', mouse: 'mouse', gamepad: 'gamepad', pingpong: 'pingpong' };
 
         function setToggleUI(on) {
             animUI.playing = !!on;
@@ -816,7 +776,6 @@
         animToggle.onclick = () => { if (animUI.playing) { animUI.stop(); setToggleUI(false); } else { startPattern(patternSel.value); } };
         patternSel.onchange = () => { if (animUI.playing) startPattern(patternSel.value); };
 
-        // Keys: play/pause + quick view roll
         document.addEventListener('keydown', (e) => {
             const tag = (document.activeElement && document.activeElement.tagName) || ''; const isTyping = /INPUT|TEXTAREA|SELECT/.test(tag);
             if (!isTyping && e.code === 'Space') { e.preventDefault(); animToggle.click(); }
