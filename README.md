@@ -11,3 +11,6 @@ StewSimCon.html uses the stewart.js library to simulate and control rotary actua
 ## Visualization
 
 ![Stewart-Platform](res/stewart-platform.png "Stewart Platform Visualization")
+
+<img width="1616" height="947" alt="image" src="https://github.com/user-attachments/assets/0d839262-89da-4751-b0d2-8c2439804b9f" />
+
