@@ -6,7 +6,7 @@
 
 [Stewart Platforms](https://raw.org/research/inverse-kinematics-of-a-stewart-platform/) are used for motion platforms with six dimensions of freedom.
 
-This project uses the stewart.js library to simulate and control rotary actuated Stewart Platforms
+StewSimCon.html uses the stewart.js library to simulate and control rotary actuated Stewart Platforms
 
 ## Visualization
 
