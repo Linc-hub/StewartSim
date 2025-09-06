@@ -6,11 +6,21 @@
 
 [Stewart Platforms](https://raw.org/research/inverse-kinematics-of-a-stewart-platform/) are used for motion platforms with six dimensions of freedom.
 
-StewSimCon.html uses the stewart.js library to simulate and control rotary actuated Stewart platforms in browser. 
-Its purpose is to provide a UI to easily send positional inputs to the platform.
+Written entirely by GPT-5, "index.html" uses the p5.min.js and stewart.js libraries to simulate and control a rotary actuated Stewart platform in browser. 
+
+This project provides an interactive web-based interface for exploring and controlling a simulated Stewart Platform. It combines a 3D canvas renderer (via p5.js and WebGL) with rich control panels that let you:
+
+- Adjust the mechanical parameters of the platform (rod length, horn length, base and platform radii, servo ranges, etc.).
+
+- Switch between multiple motion patterns (wobble, tilt, rotate, ping-pong ball balancing, helical sweep, etc.) or take direct control via keyboard/gamepad inputs.
+
+- Visualize servo angles, joint positions, and safety states in real time, with built-in inverse kinematics validation to ensure feasible poses.
+
+- Render servo markers and motion tracers so you can see how the platform moves in 3D space.
+
+In short, it’s not just for sending positional inputs — it’s an educational and debugging tool that helps you design, test, and visualize Stewart platform behaviors interactively before applying them to hardware.
 
 ## Visualization
 
 <img width="1351" height="894" alt="image" src="https://github.com/user-attachments/assets/23c0aa81-e359-4d42-978b-010c2be4f4ab" />
 <img width="1616" height="947" alt="image" src="https://github.com/user-attachments/assets/0d839262-89da-4751-b0d2-8c2439804b9f" />
-
