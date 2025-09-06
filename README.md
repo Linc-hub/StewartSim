@@ -13,7 +13,7 @@ Written entirely by *GPT-5*, "index.html" uses the "p5.min.js" and "stewart.js" 
 
 *- Adjust the mechanical parameters of the platform (rod length, horn length, base and platform radii, servo ranges, etc.).*
 
-*- Switch between multiple motion patterns (wobble, tilt, rotate, ping-pong ball balancing, helical sweep, etc.) or take direct control via keyboard/gamepad inputs.*
+*- Switch between multiple motion patterns (wobble, tilt, rotate, ping-pong ball balancing, helical sweep, etc.) or take direct control via         keyboard/gamepad inputs.*
 
 *- Visualize servo angles, joint positions, and safety states in real time, with built-in inverse kinematics validation to ensure feasible poses.*
 
