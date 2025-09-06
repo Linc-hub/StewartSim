@@ -19,7 +19,7 @@ Written entirely by *GPT-5*, "index.html" uses the "p5.min.js" and "stewart.js" 
 
 *- Render servo markers and motion tracers so you can see how the platform moves in 3D space.*
 
-*In short, it’s not just for sending positional inputs — it’s an educational and debugging tool that helps you design, test, and visualize Stewart platform behaviors interactively before applying them to hardware.**
+*In short, it’s not just for sending positional inputs — it’s an educational and debugging tool that helps you design, test, and visualize Stewart platform behaviors interactively before applying them to hardware.*
 
 ## Visualization
 
