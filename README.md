@@ -6,7 +6,8 @@
 
 [Stewart Platforms](https://raw.org/research/inverse-kinematics-of-a-stewart-platform/) are used for motion platforms with six dimensions of freedom.
 
-Written entirely by GPT-5, "index.html" uses the p5.min.js and stewart.js libraries to simulate and control a rotary actuated Stewart platform in browser. 
+Written entirely by GPT-5, "index.html" uses the "p5.min.js" and "stewart.js" libraries to simulate and control a rotary actuated Stewart platform in browser. 
+
 
 This project provides an interactive web-based interface for exploring and controlling a simulated Stewart Platform. It combines a 3D canvas renderer (via p5.js and WebGL) with rich control panels that let you:
 
