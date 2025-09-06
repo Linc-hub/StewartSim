@@ -463,6 +463,11 @@
                 <li>Servo 6: <span>0°</span></li>
             </ul>
         </details>
+        <!-- Serial connection button.  Clicking this will prompt the user to select a
+             serial port via the Web Serial API.  Once connected the button text
+             will reflect the connected state.  Servo angles are streamed to the
+             connected device whenever they update. -->
+        <button id="connectSerial" style="margin-top:8px;">Connect Serial</button>
     </section>
 
     <!-- Keyboard control panel (shown when Keyboard pattern is selected) -->
@@ -582,6 +587,102 @@
             '#e67e22', // Servo 5 – orange
             '#f1c40f'  // Servo 6 – yellow
         ];
+
+        /*
+         * ----- Serial streaming support -----
+         *
+         * The Web Serial API allows this page to send the current servo angles
+         * directly to a connected microcontroller over USB.  Click the
+         * “Connect Serial” button near the servo angles panel to open a
+         * connection.  Once connected, the button text will change to
+         * indicate the connected state.  Servo angles are streamed on
+         * each update via the sendServoAngles() helper below.  If a
+         * connection already exists, clicking the button again will close
+         * it and revert the text.
+         */
+
+        // Keep track of the current SerialPort and writer.  When no
+        // connection is active these are null.
+        let serialPort = null;
+        let serialWriter = null;
+
+        // Open a serial port at 115200 baud and prepare a text writer.  If
+        // successful the global serialWriter will be set; otherwise an
+        // alert is shown and serialWriter remains null.  You can extend
+        // this function to handle reconnection logic or error reporting.
+        async function connectSerial() {
+            if (!('serial' in navigator)) {
+                alert('Web Serial API is not supported in this browser.');
+                return;
+            }
+            try {
+                // Request a serial port from the user.  This call will
+                // display the browser’s native port picker.
+                serialPort = await navigator.serial.requestPort();
+                // Open the port with a standard baud rate.  Adjust this
+                // value to match your microcontroller’s configuration.
+                await serialPort.open({ baudRate: 115200 });
+                // Create a TextEncoderStream to convert strings into a
+                // byte stream.  Pipe its readable to the port’s writable.
+                const textEncoder = new TextEncoderStream();
+                textEncoder.readable.pipeTo(serialPort.writable);
+                serialWriter = textEncoder.writable.getWriter();
+                // Update the button label to indicate that a connection is
+                // established.
+                const btn = document.getElementById('connectSerial');
+                if (btn) btn.textContent = 'Serial Connected';
+            } catch (err) {
+                console.error('Failed to open serial port:', err);
+                alert('Failed to open serial port: ' + err);
+                serialPort = null;
+                serialWriter = null;
+            }
+        }
+
+        // Send an array of servo angles (in degrees) over the serial
+        // connection.  Each angle is rounded to two decimal places.  For
+        // mechanical symmetry the second servo in each adjacent pair
+        // (indices 1, 3 and 5) is negated before being transmitted.
+        async function sendServoAngles(angleArray) {
+            if (!serialWriter) return;
+            try {
+                const payload = angleArray.map((v, idx) => {
+                    // If the angle is null or undefined, fall back to zero.
+                    let deg = (v === null || v === undefined) ? 0 : v;
+                    // Negate every second servo in a pair: servo 2,4,6 (1‑indexed)
+                    if (idx % 2 === 1) deg = -deg;
+                    return deg.toFixed(2);
+                }).join(',') + '\n';
+                await serialWriter.write(payload);
+            } catch (err) {
+                console.error('Error writing to serial port:', err);
+            }
+        }
+
+        // Wire up the connect button.  When clicked, this will either
+        // establish a new connection or close an existing one.
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('connectSerial');
+            if (btn) {
+                btn.addEventListener('click', async () => {
+                    // If already connected, close the port and reset state.
+                    if (serialWriter) {
+                        try {
+                            await serialWriter.close();
+                        } catch (_) { }
+                        serialWriter = null;
+                        if (serialPort) {
+                            try { await serialPort.close(); } catch (_) { }
+                            serialPort = null;
+                        }
+                        btn.textContent = 'Connect Serial';
+                        return;
+                    }
+                    // Otherwise attempt to connect.
+                    await connectSerial();
+                });
+            }
+        });
 
         const opts = {
             rodLength: 130, hornLength: 50, baseRadius: 80, platformRadius: 50,
@@ -1456,14 +1557,30 @@
             const list = document.querySelectorAll('#servoAnglesList li span');
             if (!platform || !platform.getServoAngles || list.length < 6) return;
             const angs = platform.getServoAngles();
+            // Collect the raw degrees for streaming.  Use null for invalid entries.
+            const degArray = [];
             for (let i = 0; i < 6; i++) {
                 const a = angs && angs[i];
-                const deg = (a === null || a === undefined) ? null : Math.round(a * 180 / Math.PI);
-                list[i].textContent = (deg === null) ? '—' : `${deg}°`;
+                // Convert radians to degrees when defined.
+                const rawDeg = (a === null || a === undefined) ? null : (a * 180 / Math.PI);
+                // Populate the array for transmission (null entries will be replaced with zero when sending).
+                degArray.push(rawDeg);
+                // Format for display: two decimal places when defined.
+                if (rawDeg === null) {
+                    list[i].textContent = '—';
+                } else {
+                    list[i].textContent = rawDeg.toFixed(2) + '°';
+                }
                 // Apply color coding to match the servo markers in the canvas
                 if (list[i].style) {
                     list[i].style.color = servoColors[i] || '';
                 }
+            }
+            // Stream the servo angles over serial if a connection is active.  The
+            // sendServoAngles helper will handle the null entries and negate
+            // every second servo to account for mirrored mounting.
+            if (typeof sendServoAngles === 'function') {
+                sendServoAngles(degArray);
             }
         }
 
